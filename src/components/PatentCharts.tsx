@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 import { Download, Calendar, TrendingUp, Loader2, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,16 +31,26 @@ export default function PatentCharts({ searchResults, searchQuery }: PatentChart
   const [yearwiseData, setYearwiseData] = useState<YearData[]>([]);
   const [loading, setLoading] = useState(false);
   const [yearsInput, setYearsInput] = useState("5");
+  const [startYear, setStartYear] = useState(() => new Date().getFullYear().toString());
+  const [keywordInput, setKeywordInput] = useState("");
   const [chartType, setChartType] = useState("bar");
   const chartsRef = useRef<HTMLDivElement>(null);
 
+  // Update keyword input when search query changes
+  useEffect(() => {
+    if (searchQuery && keywordInput === "") {
+      setKeywordInput(searchQuery);
+    }
+  }, [searchQuery, keywordInput]);
+
   const fetchYearwiseData = async () => {
-    if (!searchQuery) return;
+    const keyword = keywordInput.trim() || searchQuery;
+    if (!keyword) return;
     
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:5000/yearwise_count?no_of_years=${yearsInput}&keyword=${encodeURIComponent(searchQuery)}`
+        `http://localhost:5000/yearwise_count?no_of_years=${yearsInput}&keyword=${encodeURIComponent(keyword)}`
       );
       const data = await response.json();
       setYearwiseData(data.sort((a: YearData, b: YearData) => a.year - b.year));
@@ -107,7 +117,31 @@ export default function PatentCharts({ searchResults, searchQuery }: PatentChart
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label htmlFor="keyword">Keyword</Label>
+              <Input
+                id="keyword"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                placeholder="Enter keyword for analysis"
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="start-year">Start Year</Label>
+              <Input
+                id="start-year"
+                type="number"
+                value={startYear}
+                onChange={(e) => setStartYear(e.target.value)}
+                min="1990"
+                max={new Date().getFullYear()}
+                className="w-full"
+              />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="years">Number of Years</Label>
               <Input
@@ -117,14 +151,14 @@ export default function PatentCharts({ searchResults, searchQuery }: PatentChart
                 onChange={(e) => setYearsInput(e.target.value)}
                 min="1"
                 max="20"
-                className="w-24"
+                className="w-full"
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="chart-type">Chart Type</Label>
               <Select value={chartType} onValueChange={setChartType}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,33 +169,39 @@ export default function PatentCharts({ searchResults, searchQuery }: PatentChart
               </Select>
             </div>
 
-            <Button 
-              onClick={fetchYearwiseData} 
-              disabled={loading || !searchQuery}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <TrendingUp className="h-4 w-4 mr-2" />
-              )}
-              Generate Charts
-            </Button>
-
-            <Button 
-              onClick={downloadCharts} 
-              variant="outline"
-              disabled={yearwiseData.length === 0 && searchResults.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
+            <div className="flex flex-col gap-2 pt-6">
+              <Button 
+                onClick={fetchYearwiseData} 
+                disabled={loading || (!keywordInput.trim() && !searchQuery)}
+                className="bg-primary hover:bg-primary/90 w-full"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                )}
+                Generate
+              </Button>
+              
+              <Button 
+                onClick={downloadCharts} 
+                variant="outline"
+                disabled={yearwiseData.length === 0 && searchResults.length === 0}
+                className="w-full"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+            </div>
           </div>
 
-          {searchQuery && (
-            <p className="text-sm text-muted-foreground mt-4">
-              Analyzing data for: <span className="font-medium">"{searchQuery}"</span>
-            </p>
+          {(keywordInput || searchQuery) && (
+            <div className="text-sm text-muted-foreground mt-4 space-y-1">
+              <p>Current keyword: <span className="font-medium">"{keywordInput || searchQuery}"</span></p>
+              {startYear && (
+                <p>Analysis from: <span className="font-medium">{startYear}</span> for <span className="font-medium">{yearsInput}</span> years</p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
