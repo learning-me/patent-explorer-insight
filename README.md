@@ -1,4 +1,4 @@
-# Patent Search & Analytics Hub
+# Patent Search & Analytics Hu
 
 The Patent Search & Analytics Hub is a powerful, user-friendly application designed to streamline the process of patent searching and analysis. It provides a comprehensive platform for inventors, researchers, and legal professionals to explore patent data, gain insights, and stay ahead of the curve.
 
